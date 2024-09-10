@@ -7,7 +7,7 @@ compatibility_date = "2023-05-26"
 
 [vars]
 # let Pswd = "ndi"
-# PROXYIP = "1.2.3.4"
+# PROXYIP = "18.141.204.88"
 # DNS_RESOLVER_URL = "https://cloudflare-dns.com/dns-query"
 # NODE_ID = "1"
 # API_TOKEN = "example_dev_token"
