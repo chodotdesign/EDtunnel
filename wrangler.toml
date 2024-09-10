@@ -6,8 +6,8 @@ main = "_worker.js"
 compatibility_date = "2023-05-26"
 
 [vars]
-# let Pswd = "ndi"
-# PROXYIP = "18.141.204.88"
+# UUID = "b3e83031-d633-46ea-b75c-a61649165ada"
+# PROXYIP = "1.2.3.4"
 # DNS_RESOLVER_URL = "https://cloudflare-dns.com/dns-query"
 # NODE_ID = "1"
 # API_TOKEN = "example_dev_token"
