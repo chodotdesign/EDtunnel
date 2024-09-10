@@ -1,1282 +1,944 @@
-// src/worker.js
-import { connect } from "cloudflare:sockets";
- 
-let Pswd = "ndi";
-const proxyIPs = ["18.141.204.88"]; //ts.hpc.tw edgetunnel.anycast.eu.org bestproxy.onecf.eu.org cdn-all.xn--b6gac.eu.org cdn.xn--b6gac.eu.org proxy.xxxxxxxx.tk
-let cn_hostnames = [''];
-let CDNIP = 'www.visa.com.sg'
-// http_ip
-let IP1 = 'www.visa.com'
-let IP2 = 'cis.visa.com'
-let IP3 = 'africa.visa.com'
-let IP4 = 'www.visa.com.sg'
-let IP5 = 'www.visaeurope.at'
-let IP6 = 'www.visa.com.mt'
-let IP7 = 'qa.visamiddleeast.com'
+// @ts-ignore
+import { connect } from 'cloudflare:sockets';
 
-// https_ip
-let IP8 = 'usa.visa.com'
-let IP9 = 'myanmar.visa.com'
-let IP10 = 'www.visa.com.tw'
-let IP11 = 'www.visaeurope.ch'
-let IP12 = 'www.visa.com.br'
-let IP13 = 'www.visasoutheasteurope.com'
+// How to generate your own UUID:
+// [Windows] Press "Win + R", input cmd and run:  Powershell -NoExit -Command "[guid]::NewGuid()"
+let userID = 'b3e83031-d633-46ea-b75c-a61649165ada';
 
-// http_port
-let PT1 = '80'
-let PT2 = '8080'
-let PT3 = '8880'
-let PT4 = '2052'
-let PT5 = '2082'
-let PT6 = '2086'
-let PT7 = '2095'
+const พร็อกซีไอพีs = ['18.141.204.88'];
 
-// https_port
-let PT8 = '443'
-let PT9 = '8443'
-let PT10 = '2053'
-let PT11 = '2083'
-let PT12 = '2087'
-let PT13 = '2096'
+// if you want to use ipv6 or single พร็อกซีไอพี, please add comment at this line and remove comment at the next line
+let พร็อกซีไอพี = พร็อกซีไอพีs[Math.floor(Math.random() * พร็อกซีไอพีs.length)];
+// use single พร็อกซีไอพี instead of random
+// let พร็อกซีไอพี = 'cdn.xn--b6gac.eu.org';
+// ipv6 พร็อกซีไอพี example remove comment to use
+// let พร็อกซีไอพี = "[2a01:4f8:c2c:123f:64:5:6810:c55a]"
 
-let sha224Password;
-let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
-const worker_default = {
-  /**
-   * @param {import("@cloudflare/workers-types").Request} request
-   * @param {proxyip: string, pswd: string, cdnip: string, ip1: string, ip2: string, ip3: string, ip4: string, ip5: string, ip6: string, ip7: string, ip8: string, ip9: string, ip10: string, ip11: string, ip12: string, ip13: string, pt1: string, pt2: string, pt3: string, pt4: string, pt5: string, pt6: string, pt7: string, pt8: string, pt9: string, pt10: string, pt11: string, pt12: string, pt13: string} env
-   * @param {import("@cloudflare/workers-types").ExecutionContext} ctx
-   * @returns {Promise<Response>}
-   */
-  async fetch(request, env, ctx) {
-    try {
-      proxyIP = env.proxyip || proxyIP;
-      CDNIP = env.cdnip || CDNIP;
-      Pswd = env.pswd || Pswd;
-      IP1 = env.ip1 || IP1;
-      IP2 = env.ip2 || IP2;
-      IP3 = env.ip3 || IP3;
-      IP4 = env.ip4 || IP4;
-      IP5 = env.ip5 || IP5;
-      IP6 = env.ip6 || IP6;
-      IP7 = env.ip7 || IP7;
-      IP8 = env.ip8 || IP8;
-      IP9 = env.ip9 || IP9;
-      IP10 = env.ip10 || IP10;
-      IP11 = env.ip11 || IP11;
-      IP12 = env.ip12 || IP12;
-      IP13 = env.ip13 || IP13;
-      PT1 = env.pt1 || PT1;
-      PT2 = env.pt2 || PT2;
-      PT3 = env.pt3 || PT3;
-      PT4 = env.pt4 || PT4;
-      PT5 = env.pt5 || PT5;
-      PT6 = env.pt6 || PT6;
-      PT7 = env.pt7 || PT7;
-      PT8 = env.pt8 || PT8;
-      PT9 = env.pt9 || PT9;
-      PT10 = env.pt10 || PT10;
-      PT11 = env.pt11 || PT11;
-      PT12 = env.pt12 || PT12;
-      PT13 = env.pt13 || PT13;
-      sha224Password = sha256.sha224(Pswd);
-      const upgradeHeader = request.headers.get("Upgrade");
-      const url = new URL(request.url);
-      if (!upgradeHeader || upgradeHeader !== "websocket") {
-        const url = new URL(request.url);
-        switch (url.pathname) {
-          case `/${Pswd}`: {
-            const trojanConfig = gettrojanConfig(Pswd, request.headers.get("Host"));
-            return new Response(`${trojanConfig}`, {
-              status: 200,
-              headers: {
-                "Content-Type": "text/html;charset=utf-8",
-              },
-            });
-          }
-		  case `/${Pswd}/ty`: {
-			const tyConfig = gettyConfig(Pswd, request.headers.get('Host'));
-			return new Response(`${tyConfig}`, {
-				status: 200,
-				headers: {
-					"Content-Type": "text/plain;charset=utf-8",
-				}
-			});
-		}
-		case `/${Pswd}/cl`: {
-			const clConfig = getclConfig(Pswd, request.headers.get('Host'));
-			return new Response(`${clConfig}`, {
-				status: 200,
-				headers: {
-					"Content-Type": "text/plain;charset=utf-8",
-				}
-			});
-		}
-		case `/${Pswd}/sb`: {
-			const sbConfig = getsbConfig(Pswd, request.headers.get('Host'));
-			return new Response(`${sbConfig}`, {
-				status: 200,
-				headers: {
-					"Content-Type": "application/json;charset=utf-8",
-				}
-			});
-		}
-		case `/${Pswd}/pty`: {
-			const ptyConfig = getptyConfig(Pswd, request.headers.get('Host'));
-			return new Response(`${ptyConfig}`, {
-				status: 200,
-				headers: {
-					"Content-Type": "text/plain;charset=utf-8",
-				}
-			});
-		}
-		case `/${Pswd}/pcl`: {
-			const pclConfig = getpclConfig(Pswd, request.headers.get('Host'));
-			return new Response(`${pclConfig}`, {
-				status: 200,
-				headers: {
-					"Content-Type": "text/plain;charset=utf-8",
-				}
-			});
-		}
-		case `/${Pswd}/psb`: {
-			const psbConfig = getpsbConfig(Pswd, request.headers.get('Host'));
-			return new Response(`${psbConfig}`, {
-				status: 200,
-				headers: {
-					"Content-Type": "application/json;charset=utf-8",
-				}
-			});
-		}
-          default:
-            // return new Response('Not found', { status: 404 });
-            // For any other path, reverse proxy to 'ramdom website' and return the original response, caching it in the process
-            if (cn_hostnames.includes('')) {
-            return new Response(JSON.stringify(request.cf, null, 4), {
-              status: 200,
-              headers: {
-                "Content-Type": "application/json;charset=utf-8",
-              },
-            });
-            }
-            const randomHostname = cn_hostnames[Math.floor(Math.random() * cn_hostnames.length)];
-            const newHeaders = new Headers(request.headers);
-            newHeaders.set("cf-connecting-ip", "1.2.3.4");
-            newHeaders.set("x-forwarded-for", "1.2.3.4");
-            newHeaders.set("x-real-ip", "1.2.3.4");
-            newHeaders.set("referer", "https://www.google.com/search?q=edtunnel");
-            // Use fetch to proxy the request to 15 different domains
-            const proxyUrl = "https://" + randomHostname + url.pathname + url.search;
-            let modifiedRequest = new Request(proxyUrl, {
-              method: request.method,
-              headers: newHeaders,
-              body: request.body,
-              redirect: "manual",
-            });
-            const proxyResponse = await fetch(modifiedRequest, { redirect: "manual" });
-            // Check for 302 or 301 redirect status and return an error response
-            if ([301, 302].includes(proxyResponse.status)) {
-              return new Response(`Redirects to ${randomHostname} are not allowed.`, {
-                status: 403,
-                statusText: "Forbidden",
-              });
-            }
-            // Return the response from the proxy server
-            return proxyResponse;
-        }
-      } else {
-			if(url.pathname.includes('/pyip='))
-			{
-				const tmp_ip=url.pathname.split("=")[1];
-				if(isValidIP(tmp_ip))
-				{
-					proxyIP=tmp_ip;
-				}
-				
+let dohURL = 'https://sky.rethinkdns.com/1:-Pf_____9_8A_AMAIgE8kMABVDDmKOHTAKg='; // https://cloudflare-dns.com/dns-query or https://dns.google/dns-query
+
+if (!isValidUUID(userID)) {
+	throw new Error('uuid is invalid');
+}
+
+export default {
+	/**
+	 * @param {import("@cloudflare/workers-types").Request} request
+	 * @param {{UUID: string, พร็อกซีไอพี: string, DNS_RESOLVER_URL: string, NODE_ID: int, API_HOST: string, API_TOKEN: string}} env
+	 * @param {import("@cloudflare/workers-types").ExecutionContext} ctx
+	 * @returns {Promise<Response>}
+	 */
+	async fetch(request, env, ctx) {
+		// uuid_validator(request);
+		try {
+			userID = env.UUID || userID;
+			พร็อกซีไอพี = env.PROXYIP || พร็อกซีไอพี;
+			dohURL = env.DNS_RESOLVER_URL || dohURL;
+			let userID_Path = userID;
+			if (userID.includes(',')) {
+				userID_Path = userID.split(',')[0];
 			}
-        return await trojanOverWSHandler(request);
+			const upgradeHeader = request.headers.get('Upgrade');
+			if (!upgradeHeader || upgradeHeader !== 'websocket') {
+				const url = new URL(request.url);
+				switch (url.pathname) {
+					case `/cf`: {
+						return new Response(JSON.stringify(request.cf, null, 4), {
+							status: 200,
+							headers: {
+								"Content-Type": "application/json;charset=utf-8",
+							},
+						});
+					}
+					case `/${userID_Path}`: {
+						const วเลสConfig = getวเลสConfig(userID, request.headers.get('Host'));
+						return new Response(`${วเลสConfig}`, {
+							status: 200,
+							headers: {
+								"Content-Type": "text/html; charset=utf-8",
+							}
+						});
+					};
+					case `/sub/${userID_Path}`: {
+						const url = new URL(request.url);
+						const searchParams = url.searchParams;
+						const วเลสSubConfig = สร้างวเลสSub(userID, request.headers.get('Host'));
+						// Construct and return response object
+						return new Response(btoa(วเลสSubConfig), {
+							status: 200,
+							headers: {
+								"Content-Type": "text/plain;charset=utf-8",
+							}
+						});
+					};
+					case `/bestip/${userID_Path}`: {
+						const headers = request.headers;
+						const url = `https://sub.xf.free.hr/auto?host=${request.headers.get('Host')}&uuid=${userID}&path=/`;
+						const bestSubConfig = await fetch(url, { headers: headers });
+						return bestSubConfig;
+					};
+					default:
+						// return new Response('Not found', { status: 404 });
+						// For any other path, reverse proxy to 'ramdom website' and return the original response, caching it in the process
+						const randomHostname = cn_hostnames[Math.floor(Math.random() * cn_hostnames.length)];
+						const newHeaders = new Headers(request.headers);
+						newHeaders.set('cf-connecting-ip', '1.2.3.4');
+						newHeaders.set('x-forwarded-for', '1.2.3.4');
+						newHeaders.set('x-real-ip', '1.2.3.4');
+						newHeaders.set('referer', 'https://www.google.com/search?q=edtunnel');
+						// Use fetch to proxy the request to 15 different domains
+						const proxyUrl = 'https://' + randomHostname + url.pathname + url.search;
+						let modifiedRequest = new Request(proxyUrl, {
+							method: request.method,
+							headers: newHeaders,
+							body: request.body,
+							redirect: 'manual',
+						});
+						const proxyResponse = await fetch(modifiedRequest, { redirect: 'manual' });
+						// Check for 302 or 301 redirect status and return an error response
+						if ([301, 302].includes(proxyResponse.status)) {
+							return new Response(`Redirects to ${randomHostname} are not allowed.`, {
+								status: 403,
+								statusText: 'Forbidden',
+							});
+						}
+						// Return the response from the proxy server
+						return proxyResponse;
+				}
+			} else {
+				return await วเลสOverWSHandler(request);
+			}
+		} catch (err) {
+			/** @type {Error} */ let e = err;
+			return new Response(e.toString());
 		}
-    } catch (err) {
-      /** @type {Error} */ let e = err;
-      return new Response(e.toString());
-    }
-  },
+	},
 };
 
-function isValidIP(ip) {
-    var reg = /^[\s\S]*$/;
-    return reg.test(ip);
+export async function uuid_validator(request) {
+	const hostname = request.headers.get('Host');
+	const currentDate = new Date();
+
+	const subdomain = hostname.split('.')[0];
+	const year = currentDate.getFullYear();
+	const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+	const day = String(currentDate.getDate()).padStart(2, '0');
+
+	const formattedDate = `${year}-${month}-${day}`;
+
+	// const daliy_sub = formattedDate + subdomain
+	const hashHex = await hashHex_f(subdomain);
+	// subdomain string contains timestamps utc and uuid string TODO.
+	console.log(hashHex, subdomain, formattedDate);
 }
 
-async function trojanOverWSHandler(request) {
-  const webSocketPair = new WebSocketPair();
-  const [client, webSocket] = Object.values(webSocketPair);
-  webSocket.accept();
-  let address = "";
-  let portWithRandomLog = "";
-  const log = (info, event) => {
-    console.log(`[${address}:${portWithRandomLog}] ${info}`, event || "");
-  };
-  const earlyDataHeader = request.headers.get("sec-websocket-protocol") || "";
-  const readableWebSocketStream = makeReadableWebSocketStream(webSocket, earlyDataHeader, log);
-  let remoteSocketWapper = {
-    value: null,
-  };
-  let udpStreamWrite = null;
-  readableWebSocketStream
-    .pipeTo(
-      new WritableStream({
-        async write(chunk, controller) {
-          if (udpStreamWrite) {
-            return udpStreamWrite(chunk);
-          }
-          if (remoteSocketWapper.value) {
-            const writer = remoteSocketWapper.value.writable.getWriter();
-            await writer.write(chunk);
-            writer.releaseLock();
-            return;
-          }
-          const {
-            hasError,
-            message,
-            portRemote = 443,
-            addressRemote = "",
-            rawClientData,
-          } = await parseTrojanHeader(chunk);
-          address = addressRemote;
-          portWithRandomLog = `${portRemote}--${Math.random()} tcp`;
-          if (hasError) {
-            throw new Error(message);
-            return;
-          }
-          handleTCPOutBound(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, log);
-        },
-        close() {
-          log(`readableWebSocketStream is closed`);
-        },
-        abort(reason) {
-          log(`readableWebSocketStream is aborted`, JSON.stringify(reason));
-        },
-      })
-    )
-    .catch((err) => {
-      log("readableWebSocketStream pipeTo error", err);
-    });
-  return new Response(null, {
-    status: 101,
-    // @ts-ignore
-    webSocket: client,
-  });
+export async function hashHex_f(string) {
+	const encoder = new TextEncoder();
+	const data = encoder.encode(string);
+	const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+	return hashHex;
 }
 
-async function parseTrojanHeader(buffer) {
-  if (buffer.byteLength < 56) {
-    return {
-      hasError: true,
-      message: "invalid data",
-    };
-  }
-  let crLfIndex = 56;
-  if (new Uint8Array(buffer.slice(56, 57))[0] !== 0x0d || new Uint8Array(buffer.slice(57, 58))[0] !== 0x0a) {
-    return {
-      hasError: true,
-      message: "invalid header format (missing CR LF)",
-    };
-  }
-  const password = new TextDecoder().decode(buffer.slice(0, crLfIndex));
-  if (password !== sha224Password) {
-    return {
-      hasError: true,
-      message: "invalid password",
-    };
-  }
+/**
+ * Handles วเลส over WebSocket requests by creating a WebSocket pair, accepting the WebSocket connection, and processing the วเลส header.
+ * @param {import("@cloudflare/workers-types").Request} request The incoming request object.
+ * @returns {Promise<Response>} A Promise that resolves to a WebSocket response object.
+ */
+async function วเลสOverWSHandler(request) {
+	const webSocketPair = new WebSocketPair();
+	const [client, webSocket] = Object.values(webSocketPair);
+	webSocket.accept();
 
-  const socks5DataBuffer = buffer.slice(crLfIndex + 2);
-  if (socks5DataBuffer.byteLength < 6) {
-    return {
-      hasError: true,
-      message: "invalid SOCKS5 request data",
-    };
-  }
+	let address = '';
+	let portWithRandomLog = '';
+	let currentDate = new Date();
+	const log = (/** @type {string} */ info, /** @type {string | undefined} */ event) => {
+		console.log(`[${currentDate} ${address}:${portWithRandomLog}] ${info}`, event || '');
+	};
+	const earlyDataHeader = request.headers.get('sec-websocket-protocol') || '';
 
-  const view = new DataView(socks5DataBuffer);
-  const cmd = view.getUint8(0);
-  if (cmd !== 1) {
-    return {
-      hasError: true,
-      message: "unsupported command, only TCP (CONNECT) is allowed",
-    };
-  }
+	const readableWebSocketStream = makeReadableWebSocketStream(webSocket, earlyDataHeader, log);
 
-  const atype = view.getUint8(1);
-  // 0x01: IPv4 address
-  // 0x03: Domain name
-  // 0x04: IPv6 address
-  let addressLength = 0;
-  let addressIndex = 2;
-  let address = "";
-  switch (atype) {
-    case 1:
-      addressLength = 4;
-      address = new Uint8Array(socks5DataBuffer.slice(addressIndex, addressIndex + addressLength)).join(".");
-      break;
-    case 3:
-      addressLength = new Uint8Array(socks5DataBuffer.slice(addressIndex, addressIndex + 1))[0];
-      addressIndex += 1;
-      address = new TextDecoder().decode(socks5DataBuffer.slice(addressIndex, addressIndex + addressLength));
-      break;
-    case 4:
-      addressLength = 16;
-      const dataView = new DataView(socks5DataBuffer.slice(addressIndex, addressIndex + addressLength));
-      const ipv6 = [];
-      for (let i = 0; i < 8; i++) {
-        ipv6.push(dataView.getUint16(i * 2).toString(16));
-      }
-      address = ipv6.join(":");
-      break;
-    default:
-      return {
-        hasError: true,
-        message: `invalid addressType is ${atype}`,
-      };
-  }
+	/** @type {{ value: import("@cloudflare/workers-types").Socket | null}}*/
+	let remoteSocketWapper = {
+		value: null,
+	};
+	let udpStreamWrite = null;
+	let isDns = false;
 
-  if (!address) {
-    return {
-      hasError: true,
-      message: `address is empty, addressType is ${atype}`,
-    };
-  }
+	// ws --> remote
+	readableWebSocketStream.pipeTo(new WritableStream({
+		async write(chunk, controller) {
+			if (isDns && udpStreamWrite) {
+				return udpStreamWrite(chunk);
+			}
+			if (remoteSocketWapper.value) {
+				const writer = remoteSocketWapper.value.writable.getWriter()
+				await writer.write(chunk);
+				writer.releaseLock();
+				return;
+			}
 
-  const portIndex = addressIndex + addressLength;
-  const portBuffer = socks5DataBuffer.slice(portIndex, portIndex + 2);
-  const portRemote = new DataView(portBuffer).getUint16(0);
-  return {
-    hasError: false,
-    addressRemote: address,
-    portRemote,
-    rawClientData: socks5DataBuffer.slice(portIndex + 4),
-  };
+			const {
+				hasError,
+				message,
+				portRemote = 443,
+				addressRemote = '',
+				rawDataIndex,
+				วเลสVersion = new Uint8Array([0, 0]),
+				isUDP,
+			} = processวเลสHeader(chunk, userID);
+			address = addressRemote;
+			portWithRandomLog = `${portRemote} ${isUDP ? 'udp' : 'tcp'} `;
+			if (hasError) {
+				// controller.error(message);
+				throw new Error(message); // cf seems has bug, controller.error will not end stream
+			}
+
+			// If UDP and not DNS port, close it
+			if (isUDP && portRemote !== 53) {
+				throw new Error('UDP proxy only enabled for DNS which is port 53');
+				// cf seems has bug, controller.error will not end stream
+			}
+
+			if (isUDP && portRemote === 53) {
+				isDns = true;
+			}
+
+			// ["version", "附加信息长度 N"]
+			const วเลสResponseHeader = new Uint8Array([วเลสVersion[0], 0]);
+			const rawClientData = chunk.slice(rawDataIndex);
+
+			// TODO: support udp here when cf runtime has udp support
+			if (isDns) {
+				const { write } = await handleUDPOutBound(webSocket, วเลสResponseHeader, log);
+				udpStreamWrite = write;
+				udpStreamWrite(rawClientData);
+				return;
+			}
+			handleTCPOutBound(remoteSocketWapper, addressRemote, portRemote, rawClientData, webSocket, วเลสResponseHeader, log);
+		},
+		close() {
+			log(`readableWebSocketStream is close`);
+		},
+		abort(reason) {
+			log(`readableWebSocketStream is abort`, JSON.stringify(reason));
+		},
+	})).catch((err) => {
+		log('readableWebSocketStream pipeTo error', err);
+	});
+
+	return new Response(null, {
+		status: 101,
+		webSocket: client,
+	});
 }
 
-async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawClientData, webSocket, log) {
-  if (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(addressRemote)) addressRemote = `${atob('d3d3Lg==')}${addressRemote}${atob('LnNzbGlwLmlv')}`;
-  async function connectAndWrite(address, port) {
-    const tcpSocket2 = connect({
-      hostname: address,
-      port,
-    });
-    remoteSocket.value = tcpSocket2;
-    log(`connected to ${address}:${port}`);
-    const writer = tcpSocket2.writable.getWriter();
-    await writer.write(rawClientData);
-    writer.releaseLock();
-    return tcpSocket2;
-  }
-  async function retry() {
-    const tcpSocket2 = await connectAndWrite(proxyIP || addressRemote, portRemote);
-    tcpSocket2.closed
-      .catch((error) => {
-        console.log("retry tcpSocket closed error", error);
-      })
-      .finally(() => {
-        safeCloseWebSocket(webSocket);
-      });
-    remoteSocketToWS(tcpSocket2, webSocket, null, log);
-  }
-  const tcpSocket = await connectAndWrite(addressRemote, portRemote);
-  remoteSocketToWS(tcpSocket, webSocket, retry, log);
+/**
+ * Handles outbound TCP connections.
+ *
+ * @param {any} remoteSocket 
+ * @param {string} addressRemote The remote address to connect to.
+ * @param {number} portRemote The remote port to connect to.
+ * @param {Uint8Array} rawClientData The raw client data to write.
+ * @param {import("@cloudflare/workers-types").WebSocket} webSocket The WebSocket to pass the remote socket to.
+ * @param {Uint8Array} วเลสResponseHeader The วเลส response header.
+ * @param {function} log The logging function.
+ * @returns {Promise<void>} The remote socket.
+ */
+async function handleTCPOutBound(remoteSocket, addressRemote, portRemote, rawClientData, webSocket, วเลสResponseHeader, log,) {
+
+	/**
+	 * Connects to a given address and port and writes data to the socket.
+	 * @param {string} address The address to connect to.
+	 * @param {number} port The port to connect to.
+	 * @returns {Promise<import("@cloudflare/workers-types").Socket>} A Promise that resolves to the connected socket.
+	 */
+	async function connectAndWrite(address, port) {
+		/** @type {import("@cloudflare/workers-types").Socket} */
+		const tcpSocket = connect({
+			hostname: address,
+			port: port,
+		});
+		remoteSocket.value = tcpSocket;
+		log(`connected to ${address}:${port}`);
+		const writer = tcpSocket.writable.getWriter();
+		await writer.write(rawClientData); // first write, nomal is tls client hello
+		writer.releaseLock();
+		return tcpSocket;
+	}
+
+	/**
+	 * Retries connecting to the remote address and port if the Cloudflare socket has no incoming data.
+	 * @returns {Promise<void>} A Promise that resolves when the retry is complete.
+	 */
+	async function retry() {
+		const tcpSocket = await connectAndWrite(พร็อกซีไอพี || addressRemote, portRemote)
+		tcpSocket.closed.catch(error => {
+			console.log('retry tcpSocket closed error', error);
+		}).finally(() => {
+			safeCloseWebSocket(webSocket);
+		})
+		remoteSocketToWS(tcpSocket, webSocket, วเลสResponseHeader, null, log);
+	}
+
+	const tcpSocket = await connectAndWrite(addressRemote, portRemote);
+
+	// when remoteSocket is ready, pass to websocket
+	// remote--> ws
+	remoteSocketToWS(tcpSocket, webSocket, วเลสResponseHeader, retry, log);
 }
 
+/**
+ * Creates a readable stream from a WebSocket server, allowing for data to be read from the WebSocket.
+ * @param {import("@cloudflare/workers-types").WebSocket} webSocketServer The WebSocket server to create the readable stream from.
+ * @param {string} earlyDataHeader The header containing early data for WebSocket 0-RTT.
+ * @param {(info: string)=> void} log The logging function.
+ * @returns {ReadableStream} A readable stream that can be used to read data from the WebSocket.
+ */
 function makeReadableWebSocketStream(webSocketServer, earlyDataHeader, log) {
-  let readableStreamCancel = false;
-  const stream = new ReadableStream({
-    start(controller) {
-      webSocketServer.addEventListener("message", (event) => {
-        if (readableStreamCancel) {
-          return;
-        }
-        const message = event.data;
-        controller.enqueue(message);
-      });
-      webSocketServer.addEventListener("close", () => {
-        safeCloseWebSocket(webSocketServer);
-        if (readableStreamCancel) {
-          return;
-        }
-        controller.close();
-      });
-      webSocketServer.addEventListener("error", (err) => {
-        log("webSocketServer error");
-        controller.error(err);
-      });
-      const { earlyData, error } = base64ToArrayBuffer(earlyDataHeader);
-      if (error) {
-        controller.error(error);
-      } else if (earlyData) {
-        controller.enqueue(earlyData);
-      }
-    },
-    pull(controller) {},
-    cancel(reason) {
-      if (readableStreamCancel) {
-        return;
-      }
-      log(`readableStream was canceled, due to ${reason}`);
-      readableStreamCancel = true;
-      safeCloseWebSocket(webSocketServer);
-    },
-  });
-  return stream;
+	let readableStreamCancel = false;
+	const stream = new ReadableStream({
+		start(controller) {
+			webSocketServer.addEventListener('message', (event) => {
+				const message = event.data;
+				controller.enqueue(message);
+			});
+
+			webSocketServer.addEventListener('close', () => {
+				safeCloseWebSocket(webSocketServer);
+				controller.close();
+			});
+
+			webSocketServer.addEventListener('error', (err) => {
+				log('webSocketServer has error');
+				controller.error(err);
+			});
+			const { earlyData, error } = base64ToArrayBuffer(earlyDataHeader);
+			if (error) {
+				controller.error(error);
+			} else if (earlyData) {
+				controller.enqueue(earlyData);
+			}
+		},
+
+		pull(controller) {
+			// if ws can stop read if stream is full, we can implement backpressure
+			// https://streams.spec.whatwg.org/#example-rs-push-backpressure
+		},
+
+		cancel(reason) {
+			log(`ReadableStream was canceled, due to ${reason}`)
+			readableStreamCancel = true;
+			safeCloseWebSocket(webSocketServer);
+		}
+	});
+
+	return stream;
 }
 
-async function remoteSocketToWS(remoteSocket, webSocket, retry, log) {
-  let hasIncomingData = false;
-  await remoteSocket.readable
-    .pipeTo(
-      new WritableStream({
-        start() {},
-        /**
-         *
-         * @param {Uint8Array} chunk
-         * @param {*} controller
-         */
-        async write(chunk, controller) {
-          hasIncomingData = true;
-          if (webSocket.readyState !== WS_READY_STATE_OPEN) {
-            controller.error("webSocket connection is not open");
-          }
-          webSocket.send(chunk);
-        },
-        close() {
-          log(`remoteSocket.readable is closed, hasIncomingData: ${hasIncomingData}`);
-        },
-        abort(reason) {
-          console.error("remoteSocket.readable abort", reason);
-        },
-      })
-    )
-    .catch((error) => {
-      console.error(`remoteSocketToWS error:`, error.stack || error);
-      safeCloseWebSocket(webSocket);
-    });
-  if (hasIncomingData === false && retry) {
-    log(`retry`);
-    retry();
-  }
+// https://xtls.github.io/development/protocols/วเลส.html
+// https://github.com/zizifn/excalidraw-backup/blob/main/v2ray-protocol.excalidraw
+
+/**
+ * Processes the วเลส header buffer and returns an object with the relevant information.
+ * @param {ArrayBuffer} วเลสBuffer The วเลส header buffer to process.
+ * @param {string} userID The user ID to validate against the UUID in the วเลส header.
+ * @returns {{
+ *  hasError: boolean,
+ *  message?: string,
+ *  addressRemote?: string,
+ *  addressType?: number,
+ *  portRemote?: number,
+ *  rawDataIndex?: number,
+ *  วเลสVersion?: Uint8Array,
+ *  isUDP?: boolean
+ * }} An object with the relevant information extracted from the วเลส header buffer.
+ */
+function processวเลสHeader(วเลสBuffer, userID) {
+	if (วเลสBuffer.byteLength < 24) {
+		return {
+			hasError: true,
+			message: 'invalid data',
+		};
+	}
+
+	const version = new Uint8Array(วเลสBuffer.slice(0, 1));
+	let isValidUser = false;
+	let isUDP = false;
+	const slicedBuffer = new Uint8Array(วเลสBuffer.slice(1, 17));
+	const slicedBufferString = stringify(slicedBuffer);
+	// check if userID is valid uuid or uuids split by , and contains userID in it otherwise return error message to console
+	const uuids = userID.includes(',') ? userID.split(",") : [userID];
+	// uuid_validator(hostName, slicedBufferString);
+
+
+	// isValidUser = uuids.some(userUuid => slicedBufferString === userUuid.trim());
+	isValidUser = uuids.some(userUuid => slicedBufferString === userUuid.trim()) || uuids.length === 1 && slicedBufferString === uuids[0].trim();
+
+	console.log(`userID: ${slicedBufferString}`);
+
+	if (!isValidUser) {
+		return {
+			hasError: true,
+			message: 'invalid user',
+		};
+	}
+
+	const optLength = new Uint8Array(วเลสBuffer.slice(17, 18))[0];
+	//skip opt for now
+
+	const command = new Uint8Array(
+		วเลสBuffer.slice(18 + optLength, 18 + optLength + 1)
+	)[0];
+
+	// 0x01 TCP
+	// 0x02 UDP
+	// 0x03 MUX
+	if (command === 1) {
+		isUDP = false;
+	} else if (command === 2) {
+		isUDP = true;
+	} else {
+		return {
+			hasError: true,
+			message: `command ${command} is not support, command 01-tcp,02-udp,03-mux`,
+		};
+	}
+	const portIndex = 18 + optLength + 1;
+	const portBuffer = วเลสBuffer.slice(portIndex, portIndex + 2);
+	// port is big-Endian in raw data etc 80 == 0x005d
+	const portRemote = new DataView(portBuffer).getUint16(0);
+
+	let addressIndex = portIndex + 2;
+	const addressBuffer = new Uint8Array(
+		วเลสBuffer.slice(addressIndex, addressIndex + 1)
+	);
+
+	// 1--> ipv4  addressLength =4
+	// 2--> domain name addressLength=addressBuffer[1]
+	// 3--> ipv6  addressLength =16
+	const addressType = addressBuffer[0];
+	let addressLength = 0;
+	let addressValueIndex = addressIndex + 1;
+	let addressValue = '';
+	switch (addressType) {
+		case 1:
+			addressLength = 4;
+			addressValue = new Uint8Array(
+				วเลสBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
+			).join('.');
+			break;
+		case 2:
+			addressLength = new Uint8Array(
+				วเลสBuffer.slice(addressValueIndex, addressValueIndex + 1)
+			)[0];
+			addressValueIndex += 1;
+			addressValue = new TextDecoder().decode(
+				วเลสBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
+			);
+			break;
+		case 3:
+			addressLength = 16;
+			const dataView = new DataView(
+				วเลสBuffer.slice(addressValueIndex, addressValueIndex + addressLength)
+			);
+			// 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+			const ipv6 = [];
+			for (let i = 0; i < 8; i++) {
+				ipv6.push(dataView.getUint16(i * 2).toString(16));
+			}
+			addressValue = ipv6.join(':');
+			// seems no need add [] for ipv6
+			break;
+		default:
+			return {
+				hasError: true,
+				message: `invild  addressType is ${addressType}`,
+			};
+	}
+	if (!addressValue) {
+		return {
+			hasError: true,
+			message: `addressValue is empty, addressType is ${addressType}`,
+		};
+	}
+
+	return {
+		hasError: false,
+		addressRemote: addressValue,
+		addressType,
+		portRemote,
+		rawDataIndex: addressValueIndex + addressLength,
+		วเลสVersion: version,
+		isUDP,
+	};
 }
 
+
+/**
+ * Converts a remote socket to a WebSocket connection.
+ * @param {import("@cloudflare/workers-types").Socket} remoteSocket The remote socket to convert.
+ * @param {import("@cloudflare/workers-types").WebSocket} webSocket The WebSocket to connect to.
+ * @param {ArrayBuffer | null} วเลสResponseHeader The วเลส response header.
+ * @param {(() => Promise<void>) | null} retry The function to retry the connection if it fails.
+ * @param {(info: string) => void} log The logging function.
+ * @returns {Promise<void>} A Promise that resolves when the conversion is complete.
+ */
+async function remoteSocketToWS(remoteSocket, webSocket, วเลสResponseHeader, retry, log) {
+	// remote--> ws
+	let remoteChunkCount = 0;
+	let chunks = [];
+	/** @type {ArrayBuffer | null} */
+	let วเลสHeader = วเลสResponseHeader;
+	let hasIncomingData = false; // check if remoteSocket has incoming data
+	await remoteSocket.readable
+		.pipeTo(
+			new WritableStream({
+				start() {
+				},
+				/**
+				 * 
+				 * @param {Uint8Array} chunk 
+				 * @param {*} controller 
+				 */
+				async write(chunk, controller) {
+					hasIncomingData = true;
+					remoteChunkCount++;
+					if (webSocket.readyState !== WS_READY_STATE_OPEN) {
+						controller.error(
+							'webSocket.readyState is not open, maybe close'
+						);
+					}
+					if (วเลสHeader) {
+						webSocket.send(await new Blob([วเลสHeader, chunk]).arrayBuffer());
+						วเลสHeader = null;
+					} else {
+						// console.log(`remoteSocketToWS send chunk ${chunk.byteLength}`);
+						// seems no need rate limit this, CF seems fix this??..
+						// if (remoteChunkCount > 20000) {
+						// 	// cf one package is 4096 byte(4kb),  4096 * 20000 = 80M
+						// 	await delay(1);
+						// }
+						webSocket.send(chunk);
+					}
+				},
+				close() {
+					log(`remoteConnection!.readable is close with hasIncomingData is ${hasIncomingData}`);
+					// safeCloseWebSocket(webSocket); // no need server close websocket frist for some case will casue HTTP ERR_CONTENT_LENGTH_MISMATCH issue, client will send close event anyway.
+				},
+				abort(reason) {
+					console.error(`remoteConnection!.readable abort`, reason);
+				},
+			})
+		)
+		.catch((error) => {
+			console.error(
+				`remoteSocketToWS has exception `,
+				error.stack || error
+			);
+			safeCloseWebSocket(webSocket);
+		});
+
+	// seems is cf connect socket have error,
+	// 1. Socket.closed will have error
+	// 2. Socket.readable will be close without any data coming
+	if (hasIncomingData === false && retry) {
+		log(`retry`)
+		retry();
+	}
+}
+
+/**
+ * Decodes a base64 string into an ArrayBuffer.
+ * @param {string} base64Str The base64 string to decode.
+ * @returns {{earlyData: ArrayBuffer|null, error: Error|null}} An object containing the decoded ArrayBuffer or null if there was an error, and any error that occurred during decoding or null if there was no error.
+ */
 function base64ToArrayBuffer(base64Str) {
-  if (!base64Str) {
-    return { error: null };
-  }
-  try {
-    base64Str = base64Str.replace(/-/g, "+").replace(/_/g, "/");
-    const decode = atob(base64Str);
-    const arryBuffer = Uint8Array.from(decode, (c) => c.charCodeAt(0));
-    return { earlyData: arryBuffer.buffer, error: null };
-  } catch (error) {
-    return { error };
-  }
+	if (!base64Str) {
+		return { earlyData: null, error: null };
+	}
+	try {
+		// go use modified Base64 for URL rfc4648 which js atob not support
+		base64Str = base64Str.replace(/-/g, '+').replace(/_/g, '/');
+		const decode = atob(base64Str);
+		const arryBuffer = Uint8Array.from(decode, (c) => c.charCodeAt(0));
+		return { earlyData: arryBuffer.buffer, error: null };
+	} catch (error) {
+		return { earlyData: null, error };
+	}
 }
 
-let WS_READY_STATE_OPEN = 1;
-let WS_READY_STATE_CLOSING = 2;
+/**
+ * Checks if a given string is a valid UUID.
+ * Note: This is not a real UUID validation.
+ * @param {string} uuid The string to validate as a UUID.
+ * @returns {boolean} True if the string is a valid UUID, false otherwise.
+ */
+function isValidUUID(uuid) {
+	const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+	return uuidRegex.test(uuid);
+}
 
+const WS_READY_STATE_OPEN = 1;
+const WS_READY_STATE_CLOSING = 2;
+/**
+ * Closes a WebSocket connection safely without throwing exceptions.
+ * @param {import("@cloudflare/workers-types").WebSocket} socket The WebSocket connection to close.
+ */
 function safeCloseWebSocket(socket) {
-  try {
-    if (socket.readyState === WS_READY_STATE_OPEN || socket.readyState === WS_READY_STATE_CLOSING) {
-      socket.close();
-    }
-  } catch (error) {
-    console.error("safeCloseWebSocket error", error);
-  }
-}
-export { worker_default as default };
-
-//# sourceMappingURL=worker.js.map
-function gettrojanConfig(Pswd, hostName) {
-  const wtrojanws = `trojan://${Pswd}@BUG.COM:80?security=none&type=ws&host=${hostName}&path=/trojan#${hostName}`;
-  const ptrojanwstls = `trojan://${Pswd}\u0040${hostName}:443?security=tls&type=ws&host=${hostName}&sni=${hostName}&fp=random&path=/trojan#${hostName}`;
-  const note = `<div class="card p-3 border border-2 border-success rounded-2 text-center bg-dark text-light">
-      <ul class="list-unstyled">
-        <li class="fw-bold mt-2 h5 text-decoration-underline">Port443</li>
-        <br>
-        <li>${ptrojanwstls}</li>
-        <br>
-        <button class="border border-3 border-success rounded-4 fw-bold" style="width: 180px; height: 30px;" onclick='copyToClipboard("${ptrojanwstls}")'><i>Copy Trojan 443</i></button>
-      </ul>
-    </div>`;
-  const noteshow = note.replace(/\n/, '');
-  const displayHtml = `
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-<style>
-.limited-width {
-    max-width: 200px;
-    overflow: auto;
-    word-wrap: break-word;
+	try {
+		if (socket.readyState === WS_READY_STATE_OPEN || socket.readyState === WS_READY_STATE_CLOSING) {
+			socket.close();
+		}
+	} catch (error) {
+		console.error('safeCloseWebSocket error', error);
+	}
 }
 
-pre{
-    font-size: 19px;
-    color: red;
-    animation-name: textzoom;
-    animation-duration: 1s;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-    animation-direction: alternate;
-  }
-  
-  @keyframes textzoom {
-    0%{
-      font-size: 16px;
-    }
-    100%{
-      font-size: 23px;
-    }
-  }
-</style>
-</head>
-<script>
-function copyToClipboard(text) {
+const byteToHex = [];
+
+for (let i = 0; i < 256; ++i) {
+	byteToHex.push((i + 256).toString(16).slice(1));
+}
+
+function unsafeStringify(arr, offset = 0) {
+	return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+function stringify(arr, offset = 0) {
+	const uuid = unsafeStringify(arr, offset);
+	if (!isValidUUID(uuid)) {
+		throw TypeError("Stringified UUID is invalid");
+	}
+	return uuid;
+}
+
+
+/**
+ * Handles outbound UDP traffic by transforming the data into DNS queries and sending them over a WebSocket connection.
+ * @param {import("@cloudflare/workers-types").WebSocket} webSocket The WebSocket connection to send the DNS queries over.
+ * @param {ArrayBuffer} วเลสResponseHeader The วเลส response header.
+ * @param {(string) => void} log The logging function.
+ * @returns {{write: (chunk: Uint8Array) => void}} An object with a write method that accepts a Uint8Array chunk to write to the transform stream.
+ */
+async function handleUDPOutBound(webSocket, วเลสResponseHeader, log) {
+
+	let isวเลสHeaderSent = false;
+	const transformStream = new TransformStream({
+		start(controller) {
+
+		},
+		transform(chunk, controller) {
+			// udp message 2 byte is the the length of udp data
+			// TODO: this should have bug, beacsue maybe udp chunk can be in two websocket message
+			for (let index = 0; index < chunk.byteLength;) {
+				const lengthBuffer = chunk.slice(index, index + 2);
+				const udpPakcetLength = new DataView(lengthBuffer).getUint16(0);
+				const udpData = new Uint8Array(
+					chunk.slice(index + 2, index + 2 + udpPakcetLength)
+				);
+				index = index + 2 + udpPakcetLength;
+				controller.enqueue(udpData);
+			}
+		},
+		flush(controller) {
+		}
+	});
+
+	// only handle dns udp for now
+	transformStream.readable.pipeTo(new WritableStream({
+		async write(chunk) {
+			const resp = await fetch(dohURL, // dns server url
+				{
+					method: 'POST',
+					headers: {
+						'content-type': 'application/dns-message',
+					},
+					body: chunk,
+				})
+			const dnsQueryResult = await resp.arrayBuffer();
+			const udpSize = dnsQueryResult.byteLength;
+			// console.log([...new Uint8Array(dnsQueryResult)].map((x) => x.toString(16)));
+			const udpSizeBuffer = new Uint8Array([(udpSize >> 8) & 0xff, udpSize & 0xff]);
+			if (webSocket.readyState === WS_READY_STATE_OPEN) {
+				log(`doh success and dns message length is ${udpSize}`);
+				if (isวเลสHeaderSent) {
+					webSocket.send(await new Blob([udpSizeBuffer, dnsQueryResult]).arrayBuffer());
+				} else {
+					webSocket.send(await new Blob([วเลสResponseHeader, udpSizeBuffer, dnsQueryResult]).arrayBuffer());
+					isวเลสHeaderSent = true;
+				}
+			}
+		}
+	})).catch((error) => {
+		log('dns udp has error' + error)
+	});
+
+	const writer = transformStream.writable.getWriter();
+
+	return {
+		/**
+		 * 
+		 * @param {Uint8Array} chunk 
+		 */
+		write(chunk) {
+			writer.write(chunk);
+		}
+	};
+}
+
+const at = 'QA==';
+const pt = 'dmxlc3M=';
+const ed = 'RUR0dW5uZWw=';
+/**
+ *
+ * @param {string} userID - single or comma separated userIDs
+ * @param {string | null} hostName
+ * @returns {string}
+ */
+function getวเลสConfig(userIDs, hostName) {
+	const commonUrlPart = `:443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2048#${hostName}`;
+	const hashSeparator = "################################################################";
+
+	// Split the userIDs into an array
+	const userIDArray = userIDs.split(",");
+
+	// Prepare output string for each userID
+	const output = userIDArray.map((userID) => {
+		const วเลสMain = atob(pt) + '://' + userID + atob(at) + hostName + commonUrlPart;
+		const วเลสSec = atob(pt) + '://' + userID + atob(at) + พร็อกซีไอพี + commonUrlPart;
+		return `<h2>UUID: ${userID}</h2>${hashSeparator}\nv2ray default ip
+---------------------------------------------------------------
+${วเลสMain}
+<button onclick='copyToClipboard("${วเลสMain}")'><i class="fa fa-clipboard"></i> Copy วเลสMain</button>
+---------------------------------------------------------------
+v2ray with bestip
+---------------------------------------------------------------
+${วเลสSec}
+<button onclick='copyToClipboard("${วเลสSec}")'><i class="fa fa-clipboard"></i> Copy วเลสSec</button>
+---------------------------------------------------------------`;
+	}).join('\n');
+	const sublink = `https://${hostName}/sub/${userIDArray[0]}?format=clash`
+	const subbestip = `https://${hostName}/bestip/${userIDArray[0]}`;
+	const clash_link = `https://api.v1.mk/sub?target=clash&url=${encodeURIComponent(sublink)}&insert=false&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
+	// Prepare header string
+	const header = `
+<p align='center'><img src='https://cloudflare-ipfs.com/ipfs/bafybeigd6i5aavwpr6wvnwuyayklq3omonggta4x2q7kpmgafj357nkcky' alt='图片描述' style='margin-bottom: -50px;'>
+<b style='font-size: 15px;'>Welcome! This function generates configuration for วเลส protocol. If you found this useful, please check our GitHub project for more:</b>
+<b style='font-size: 15px;'>欢迎！这是生成 วเลส 协议的配置。如果您发现这个项目很好用，请查看我们的 GitHub 项目给我一个star：</b>
+<a href='https://github.com/3Kmfi6HP/EDtunnel' target='_blank'>EDtunnel - https://github.com/3Kmfi6HP/EDtunnel</a>
+<iframe src='https://ghbtns.com/github-btn.html?user=USERNAME&repo=REPOSITORY&type=star&count=true&size=large' frameborder='0' scrolling='0' width='170' height='30' title='GitHub'></iframe>
+<a href='//${hostName}/sub/${userIDArray[0]}' target='_blank'>วเลส 节点订阅连接</a>
+<a href='clash://install-config?url=${encodeURIComponent(`https://${hostName}/sub/${userIDArray[0]}?format=clash`)}}' target='_blank'>Clash for Windows 节点订阅连接</a>
+<a href='${clash_link}' target='_blank'>Clash 节点订阅连接</a>
+<a href='${subbestip}' target='_blank'>优选IP自动节点订阅</a>
+<a href='clash://install-config?url=${encodeURIComponent(subbestip)}' target='_blank'>Clash优选IP自动</a>
+<a href='sing-box://import-remote-profile?url=${encodeURIComponent(subbestip)}' target='_blank'>singbox优选IP自动</a>
+<a href='sn://subscription?url=${encodeURIComponent(subbestip)}' target='_blank'>nekobox优选IP自动</a>
+<a href='v2rayng://install-config?url=${encodeURIComponent(subbestip)}' target='_blank'>v2rayNG优选IP自动</a></p>`;
+
+	// HTML Head with CSS and FontAwesome library
+	const htmlHead = `
+  <head>
+	<title>EDtunnel: วเลส configuration</title>
+	<meta name='description' content='This is a tool for generating วเลส protocol configurations. Give us a star on GitHub https://github.com/3Kmfi6HP/EDtunnel if you found it useful!'>
+	<meta name='keywords' content='EDtunnel, cloudflare pages, cloudflare worker, severless'>
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<meta property='og:site_name' content='EDtunnel: วเลส configuration' />
+	<meta property='og:type' content='website' />
+	<meta property='og:title' content='EDtunnel - วเลส configuration and subscribe output' />
+	<meta property='og:description' content='Use cloudflare pages and worker severless to implement วเลส protocol' />
+	<meta property='og:url' content='https://${hostName}/' />
+	<meta property='og:image' content='https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`วเลส://${userIDs.split(",")[0]}@${hostName}${commonUrlPart}`)}' />
+	<meta name='twitter:card' content='summary_large_image' />
+	<meta name='twitter:title' content='EDtunnel - วเลส configuration and subscribe output' />
+	<meta name='twitter:description' content='Use cloudflare pages and worker severless to implement วเลส protocol' />
+	<meta name='twitter:url' content='https://${hostName}/' />
+	<meta name='twitter:image' content='https://cloudflare-ipfs.com/ipfs/bafybeigd6i5aavwpr6wvnwuyayklq3omonggta4x2q7kpmgafj357nkcky' />
+	<meta property='og:image:width' content='1500' />
+	<meta property='og:image:height' content='1500' />
+
+	<style>
+	body {
+	  font-family: Arial, sans-serif;
+	  background-color: #f0f0f0;
+	  color: #333;
+	  padding: 10px;
+	}
+
+	a {
+	  color: #1a0dab;
+	  text-decoration: none;
+	}
+	img {
+	  max-width: 100%;
+	  height: auto;
+	}
+
+	pre {
+	  white-space: pre-wrap;
+	  word-wrap: break-word;
+	  background-color: #fff;
+	  border: 1px solid #ddd;
+	  padding: 15px;
+	  margin: 10px 0;
+	}
+	/* Dark mode */
+	@media (prefers-color-scheme: dark) {
+	  body {
+		background-color: #333;
+		color: #f0f0f0;
+	  }
+
+	  a {
+		color: #9db4ff;
+	  }
+
+	  pre {
+		background-color: #282a36;
+		border-color: #6272a4;
+	  }
+	}
+	</style>
+
+	<!-- Add FontAwesome library -->
+	<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css'>
+  </head>
+  `;
+
+	// Join output with newlines, wrap inside <html> and <body>
+	return `
+  <html>
+  ${htmlHead}
+  <body>
+  <pre style='background-color: transparent; border: none;'>${header}</pre>
+  <pre>${output}</pre>
+  </body>
+  <script>
+	function copyToClipboard(text) {
 	  navigator.clipboard.writeText(text)
 		.then(() => {
 		  alert("Copied to clipboard");
 		})
 		.catch((err) => {
 		  console.error("Failed to copy to clipboard:", err);
-	   });
-   	}
-
-function jam(){
-		var namaTahun = [ "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember" ];
-		var namaHari = [ "Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jum'at", "Sabtu" ];
-		var hari_ini = new Date();
-		document.getElementById('Date').innerHTML = (namaHari[hari_ini.getDay()] + ", " + hari_ini.getDate()+ '-' + namaTahun[hari_ini.getMonth()] + '-' +hari_ini.getFullYear());
-		var h = hari_ini.getHours();
-		var m = hari_ini.getMinutes();
-		var s = hari_ini.getUTCSeconds();
-		var day = h<11 ? 'AM' : 'PM';
-		  h = h<10? '0'+h: h;
-		  m = m<10? '0'+m: m;
-		  s = s<10? '0'+s: s;
-		document.getElementById('hours').innerHTML = h;
-		document.getElementById('min').innerHTML = m;
-		document.getElementById('sec').innerHTML = s;
-	  }var inter = setInterval(jam,1000);
-</script>
-`;
-if (hostName.includes("workers.dev")) {
-return `
-${displayHtml}`;
-  } else {
-    return `
-    <br>
-${displayHtml}
-<body class="bg-dark">
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-        <div class="container list-unstyled text-center text-light fw-bold mt-5" style="height: 200px;">
-  <div id="Date">..., ...-...-...</div>
-	<ul class="list-unstyled d-flex justify-content-center display-4 h1 fw-bold">
-		<li id="hours">..</li>
-		<li id="point">:</li>
-		<li id="min">..</li>
-		<li id="point">:</li>
-		<li id="sec">..</li>
-  	</ul>
-	<br />
-	<pre class="animation fw-bold text-danger"><i style="height:50px;">TROJAN FREE CLOUDFLARE</i></pre>
-</div>
-      <p>${noteshow}</p>
-      <table>
-				<tbody>
-					<tr>
-						<div class="card p-3 border border-2 border-success rounded-2 text-center bg-dark text-light">
-            <ul class="list-unstyled">
-              <li class="fw-bold mt-2 h5 text-decoration-underline">Port80</li>
-              <br>
-              <li>${wtrojanws}</li>
-              <br>
-              <button class="border border-3 border-success rounded-4 fw-bold" style="width: 180px; height: 30px;" onclick='copyToClipboard("${wtrojanws}")'><i>Copy Trojan 80</i></button>
-            </ul>
-          </div>
-					</tr>
-				</tbody>
-			</table>
-        </div>
-    </div>
-</div>
-</body>
-`;
-  }
+		});
+	}
+  </script>
+  </html>`;
 }
 
-/**
- * [js-sha256]{@link https://github.com/emn178/js-sha256}
- *
- * @version 0.11.0
- * @author Chen, Yi-Cyuan [emn178@gmail.com]
- * @copyright Chen, Yi-Cyuan 2014-2024
- * @license MIT
- */
-/*jslint bitwise: true */
-(function () {
-  "use strict";
+const เซ็ตพอร์ตHttp = new Set([80, 8080, 8880, 2052, 2086, 2095, 2082]);
+const เซ็ตพอร์ตHttps = new Set([443, 8443, 2053, 2096, 2087, 2083]);
 
-  var ERROR = "input is invalid type";
-  var WINDOW = typeof window === "object";
-  var root = WINDOW ? window : {};
-  if (root.JS_SHA256_NO_WINDOW) {
-    WINDOW = false;
-  }
-  var WEB_WORKER = !WINDOW && typeof self === "object";
-  var NODE_JS = !root.JS_SHA256_NO_NODE_JS && typeof process === "object" && process.versions && process.versions.node;
-  if (NODE_JS) {
-    root = global;
-  } else if (WEB_WORKER) {
-    root = self;
-  }
-  var COMMON_JS = !root.JS_SHA256_NO_COMMON_JS && typeof module === "object" && module.exports;
-  var AMD = typeof define === "function" && define.amd;
-  var ARRAY_BUFFER = !root.JS_SHA256_NO_ARRAY_BUFFER && typeof ArrayBuffer !== "undefined";
-  var HEX_CHARS = "0123456789abcdef".split("");
-  var EXTRA = [-2147483648, 8388608, 32768, 128];
-  var SHIFT = [24, 16, 8, 0];
-  var K = [
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98,
-    0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-    0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8,
-    0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819,
-    0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-    0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
-    0xc67178f2,
-  ];
-  var OUTPUT_TYPES = ["hex", "array", "digest", "arrayBuffer"];
+function สร้างวเลสSub(ไอดีผู้ใช้_เส้นทาง, ชื่อโฮสต์) {
+	const อาร์เรย์ไอดีผู้ใช้ = ไอดีผู้ใช้_เส้นทาง.includes(',') ? ไอดีผู้ใช้_เส้นทาง.split(',') : [ไอดีผู้ใช้_เส้นทาง];
+	const ส่วนUrlทั่วไปHttp = `?encryption=none&security=none&fp=random&type=ws&host=${ชื่อโฮสต์}&path=%2F%3Fed%3D2048#`;
+	const ส่วนUrlทั่วไปHttps = `?encryption=none&security=tls&sni=${ชื่อโฮสต์}&fp=random&type=ws&host=${ชื่อโฮสต์}&path=%2F%3Fed%3D2048#`;
 
-  var blocks = [];
+	const ผลลัพธ์ = อาร์เรย์ไอดีผู้ใช้.flatMap((ไอดีผู้ใช้) => {
+		const การกำหนดค่าHttp = Array.from(เซ็ตพอร์ตHttp).flatMap((พอร์ต) => {
+			if (!ชื่อโฮสต์.includes('pages.dev')) {
+				const ส่วนUrl = `${ชื่อโฮสต์}-HTTP-${พอร์ต}`;
+				const วเลสหลักHttp = atob(pt) + '://' + ไอดีผู้ใช้ + atob(at) + ชื่อโฮสต์ + ':' + พอร์ต + ส่วนUrlทั่วไปHttp + ส่วนUrl;
+				return พร็อกซีไอพีs.flatMap((พร็อกซีไอพี) => {
+					const วเลสรองHttp = atob(pt) + '://' + ไอดีผู้ใช้ + atob(at) + พร็อกซีไอพี + ':' + พอร์ต + ส่วนUrlทั่วไปHttp + ส่วนUrl + '-' + พร็อกซีไอพี + '-' + atob(ed);
+					return [วเลสหลักHttp, วเลสรองHttp];
+				});
+			}
+			return [];
+		});
 
-  if (root.JS_SHA256_NO_NODE_JS || !Array.isArray) {
-    Array.isArray = function (obj) {
-      return Object.prototype.toString.call(obj) === "[object Array]";
-    };
-  }
+		const การกำหนดค่าHttps = Array.from(เซ็ตพอร์ตHttps).flatMap((พอร์ต) => {
+			const ส่วนUrl = `${ชื่อโฮสต์}-HTTPS-${พอร์ต}`;
+			const วเลสหลักHttps = atob(pt) + '://' + ไอดีผู้ใช้ + atob(at) + ชื่อโฮสต์ + ':' + พอร์ต + ส่วนUrlทั่วไปHttps + ส่วนUrl;
+			return พร็อกซีไอพีs.flatMap((พร็อกซีไอพี) => {
+				const วเลสรองHttps = atob(pt) + '://' + ไอดีผู้ใช้ + atob(at) + พร็อกซีไอพี + ':' + พอร์ต + ส่วนUrlทั่วไปHttps + ส่วนUrl + '-' + พร็อกซีไอพี + '-' + atob(ed);
+				return [วเลสหลักHttps, วเลสรองHttps];
+			});
+		});
 
-  if (ARRAY_BUFFER && (root.JS_SHA256_NO_ARRAY_BUFFER_IS_VIEW || !ArrayBuffer.isView)) {
-    ArrayBuffer.isView = function (obj) {
-      return typeof obj === "object" && obj.buffer && obj.buffer.constructor === ArrayBuffer;
-    };
-  }
+		return [...การกำหนดค่าHttp, ...การกำหนดค่าHttps];
+	});
 
-  var createOutputMethod = function (outputType, is224) {
-    return function (message) {
-      return new Sha256(is224, true).update(message)[outputType]();
-    };
-  };
+	return ผลลัพธ์.join('\n');
+}
 
-  var createMethod = function (is224) {
-    var method = createOutputMethod("hex", is224);
-    if (NODE_JS) {
-      method = nodeWrap(method, is224);
-    }
-    method.create = function () {
-      return new Sha256(is224);
-    };
-    method.update = function (message) {
-      return method.create().update(message);
-    };
-    for (var i = 0; i < OUTPUT_TYPES.length; ++i) {
-      var type = OUTPUT_TYPES[i];
-      method[type] = createOutputMethod(type, is224);
-    }
-    return method;
-  };
-
-  var nodeWrap = function (method, is224) {
-    var crypto = require("crypto");
-    var Buffer = require("buffer").Buffer;
-    var algorithm = is224 ? "sha224" : "sha256";
-    var bufferFrom;
-    if (Buffer.from && !root.JS_SHA256_NO_BUFFER_FROM) {
-      bufferFrom = Buffer.from;
-    } else {
-      bufferFrom = function (message) {
-        return new Buffer(message);
-      };
-    }
-    var nodeMethod = function (message) {
-      if (typeof message === "string") {
-        return crypto.createHash(algorithm).update(message, "utf8").digest("hex");
-      } else {
-        if (message === null || message === undefined) {
-          throw new Error(ERROR);
-        } else if (message.constructor === ArrayBuffer) {
-          message = new Uint8Array(message);
-        }
-      }
-      if (Array.isArray(message) || ArrayBuffer.isView(message) || message.constructor === Buffer) {
-        return crypto.createHash(algorithm).update(bufferFrom(message)).digest("hex");
-      } else {
-        return method(message);
-      }
-    };
-    return nodeMethod;
-  };
-
-  var createHmacOutputMethod = function (outputType, is224) {
-    return function (key, message) {
-      return new HmacSha256(key, is224, true).update(message)[outputType]();
-    };
-  };
-
-  var createHmacMethod = function (is224) {
-    var method = createHmacOutputMethod("hex", is224);
-    method.create = function (key) {
-      return new HmacSha256(key, is224);
-    };
-    method.update = function (key, message) {
-      return method.create(key).update(message);
-    };
-    for (var i = 0; i < OUTPUT_TYPES.length; ++i) {
-      var type = OUTPUT_TYPES[i];
-      method[type] = createHmacOutputMethod(type, is224);
-    }
-    return method;
-  };
-
-  function Sha256(is224, sharedMemory) {
-    if (sharedMemory) {
-      blocks[0] =
-        blocks[16] =
-        blocks[1] =
-        blocks[2] =
-        blocks[3] =
-        blocks[4] =
-        blocks[5] =
-        blocks[6] =
-        blocks[7] =
-        blocks[8] =
-        blocks[9] =
-        blocks[10] =
-        blocks[11] =
-        blocks[12] =
-        blocks[13] =
-        blocks[14] =
-        blocks[15] =
-          0;
-      this.blocks = blocks;
-    } else {
-      this.blocks = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    }
-
-    if (is224) {
-      this.h0 = 0xc1059ed8;
-      this.h1 = 0x367cd507;
-      this.h2 = 0x3070dd17;
-      this.h3 = 0xf70e5939;
-      this.h4 = 0xffc00b31;
-      this.h5 = 0x68581511;
-      this.h6 = 0x64f98fa7;
-      this.h7 = 0xbefa4fa4;
-    } else {
-      // 256
-      this.h0 = 0x6a09e667;
-      this.h1 = 0xbb67ae85;
-      this.h2 = 0x3c6ef372;
-      this.h3 = 0xa54ff53a;
-      this.h4 = 0x510e527f;
-      this.h5 = 0x9b05688c;
-      this.h6 = 0x1f83d9ab;
-      this.h7 = 0x5be0cd19;
-    }
-
-    this.block = this.start = this.bytes = this.hBytes = 0;
-    this.finalized = this.hashed = false;
-    this.first = true;
-    this.is224 = is224;
-  }
-
-  Sha256.prototype.update = function (message) {
-    if (this.finalized) {
-      return;
-    }
-    var notString,
-      type = typeof message;
-    if (type !== "string") {
-      if (type === "object") {
-        if (message === null) {
-          throw new Error(ERROR);
-        } else if (ARRAY_BUFFER && message.constructor === ArrayBuffer) {
-          message = new Uint8Array(message);
-        } else if (!Array.isArray(message)) {
-          if (!ARRAY_BUFFER || !ArrayBuffer.isView(message)) {
-            throw new Error(ERROR);
-          }
-        }
-      } else {
-        throw new Error(ERROR);
-      }
-      notString = true;
-    }
-    var code,
-      index = 0,
-      i,
-      length = message.length,
-      blocks = this.blocks;
-    while (index < length) {
-      if (this.hashed) {
-        this.hashed = false;
-        blocks[0] = this.block;
-        this.block =
-          blocks[16] =
-          blocks[1] =
-          blocks[2] =
-          blocks[3] =
-          blocks[4] =
-          blocks[5] =
-          blocks[6] =
-          blocks[7] =
-          blocks[8] =
-          blocks[9] =
-          blocks[10] =
-          blocks[11] =
-          blocks[12] =
-          blocks[13] =
-          blocks[14] =
-          blocks[15] =
-            0;
-      }
-
-      if (notString) {
-        for (i = this.start; index < length && i < 64; ++index) {
-          blocks[i >>> 2] |= message[index] << SHIFT[i++ & 3];
-        }
-      } else {
-        for (i = this.start; index < length && i < 64; ++index) {
-          code = message.charCodeAt(index);
-          if (code < 0x80) {
-            blocks[i >>> 2] |= code << SHIFT[i++ & 3];
-          } else if (code < 0x800) {
-            blocks[i >>> 2] |= (0xc0 | (code >>> 6)) << SHIFT[i++ & 3];
-            blocks[i >>> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
-          } else if (code < 0xd800 || code >= 0xe000) {
-            blocks[i >>> 2] |= (0xe0 | (code >>> 12)) << SHIFT[i++ & 3];
-            blocks[i >>> 2] |= (0x80 | ((code >>> 6) & 0x3f)) << SHIFT[i++ & 3];
-            blocks[i >>> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
-          } else {
-            code = 0x10000 + (((code & 0x3ff) << 10) | (message.charCodeAt(++index) & 0x3ff));
-            blocks[i >>> 2] |= (0xf0 | (code >>> 18)) << SHIFT[i++ & 3];
-            blocks[i >>> 2] |= (0x80 | ((code >>> 12) & 0x3f)) << SHIFT[i++ & 3];
-            blocks[i >>> 2] |= (0x80 | ((code >>> 6) & 0x3f)) << SHIFT[i++ & 3];
-            blocks[i >>> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
-          }
-        }
-      }
-
-      this.lastByteIndex = i;
-      this.bytes += i - this.start;
-      if (i >= 64) {
-        this.block = blocks[16];
-        this.start = i - 64;
-        this.hash();
-        this.hashed = true;
-      } else {
-        this.start = i;
-      }
-    }
-    if (this.bytes > 4294967295) {
-      this.hBytes += (this.bytes / 4294967296) << 0;
-      this.bytes = this.bytes % 4294967296;
-    }
-    return this;
-  };
-
-  Sha256.prototype.finalize = function () {
-    if (this.finalized) {
-      return;
-    }
-    this.finalized = true;
-    var blocks = this.blocks,
-      i = this.lastByteIndex;
-    blocks[16] = this.block;
-    blocks[i >>> 2] |= EXTRA[i & 3];
-    this.block = blocks[16];
-    if (i >= 56) {
-      if (!this.hashed) {
-        this.hash();
-      }
-      blocks[0] = this.block;
-      blocks[16] =
-        blocks[1] =
-        blocks[2] =
-        blocks[3] =
-        blocks[4] =
-        blocks[5] =
-        blocks[6] =
-        blocks[7] =
-        blocks[8] =
-        blocks[9] =
-        blocks[10] =
-        blocks[11] =
-        blocks[12] =
-        blocks[13] =
-        blocks[14] =
-        blocks[15] =
-          0;
-    }
-    blocks[14] = (this.hBytes << 3) | (this.bytes >>> 29);
-    blocks[15] = this.bytes << 3;
-    this.hash();
-  };
-
-  Sha256.prototype.hash = function () {
-    var a = this.h0,
-      b = this.h1,
-      c = this.h2,
-      d = this.h3,
-      e = this.h4,
-      f = this.h5,
-      g = this.h6,
-      h = this.h7,
-      blocks = this.blocks,
-      j,
-      s0,
-      s1,
-      maj,
-      t1,
-      t2,
-      ch,
-      ab,
-      da,
-      cd,
-      bc;
-
-    for (j = 16; j < 64; ++j) {
-      // rightrotate
-      t1 = blocks[j - 15];
-      s0 = ((t1 >>> 7) | (t1 << 25)) ^ ((t1 >>> 18) | (t1 << 14)) ^ (t1 >>> 3);
-      t1 = blocks[j - 2];
-      s1 = ((t1 >>> 17) | (t1 << 15)) ^ ((t1 >>> 19) | (t1 << 13)) ^ (t1 >>> 10);
-      blocks[j] = (blocks[j - 16] + s0 + blocks[j - 7] + s1) << 0;
-    }
-
-    bc = b & c;
-    for (j = 0; j < 64; j += 4) {
-      if (this.first) {
-        if (this.is224) {
-          ab = 300032;
-          t1 = blocks[0] - 1413257819;
-          h = (t1 - 150054599) << 0;
-          d = (t1 + 24177077) << 0;
-        } else {
-          ab = 704751109;
-          t1 = blocks[0] - 210244248;
-          h = (t1 - 1521486534) << 0;
-          d = (t1 + 143694565) << 0;
-        }
-        this.first = false;
-      } else {
-        s0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
-        s1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
-        ab = a & b;
-        maj = ab ^ (a & c) ^ bc;
-        ch = (e & f) ^ (~e & g);
-        t1 = h + s1 + ch + K[j] + blocks[j];
-        t2 = s0 + maj;
-        h = (d + t1) << 0;
-        d = (t1 + t2) << 0;
-      }
-      s0 = ((d >>> 2) | (d << 30)) ^ ((d >>> 13) | (d << 19)) ^ ((d >>> 22) | (d << 10));
-      s1 = ((h >>> 6) | (h << 26)) ^ ((h >>> 11) | (h << 21)) ^ ((h >>> 25) | (h << 7));
-      da = d & a;
-      maj = da ^ (d & b) ^ ab;
-      ch = (h & e) ^ (~h & f);
-      t1 = g + s1 + ch + K[j + 1] + blocks[j + 1];
-      t2 = s0 + maj;
-      g = (c + t1) << 0;
-      c = (t1 + t2) << 0;
-      s0 = ((c >>> 2) | (c << 30)) ^ ((c >>> 13) | (c << 19)) ^ ((c >>> 22) | (c << 10));
-      s1 = ((g >>> 6) | (g << 26)) ^ ((g >>> 11) | (g << 21)) ^ ((g >>> 25) | (g << 7));
-      cd = c & d;
-      maj = cd ^ (c & a) ^ da;
-      ch = (g & h) ^ (~g & e);
-      t1 = f + s1 + ch + K[j + 2] + blocks[j + 2];
-      t2 = s0 + maj;
-      f = (b + t1) << 0;
-      b = (t1 + t2) << 0;
-      s0 = ((b >>> 2) | (b << 30)) ^ ((b >>> 13) | (b << 19)) ^ ((b >>> 22) | (b << 10));
-      s1 = ((f >>> 6) | (f << 26)) ^ ((f >>> 11) | (f << 21)) ^ ((f >>> 25) | (f << 7));
-      bc = b & c;
-      maj = bc ^ (b & d) ^ cd;
-      ch = (f & g) ^ (~f & h);
-      t1 = e + s1 + ch + K[j + 3] + blocks[j + 3];
-      t2 = s0 + maj;
-      e = (a + t1) << 0;
-      a = (t1 + t2) << 0;
-      this.chromeBugWorkAround = true;
-    }
-
-    this.h0 = (this.h0 + a) << 0;
-    this.h1 = (this.h1 + b) << 0;
-    this.h2 = (this.h2 + c) << 0;
-    this.h3 = (this.h3 + d) << 0;
-    this.h4 = (this.h4 + e) << 0;
-    this.h5 = (this.h5 + f) << 0;
-    this.h6 = (this.h6 + g) << 0;
-    this.h7 = (this.h7 + h) << 0;
-  };
-
-  Sha256.prototype.hex = function () {
-    this.finalize();
-
-    var h0 = this.h0,
-      h1 = this.h1,
-      h2 = this.h2,
-      h3 = this.h3,
-      h4 = this.h4,
-      h5 = this.h5,
-      h6 = this.h6,
-      h7 = this.h7;
-
-    var hex =
-      HEX_CHARS[(h0 >>> 28) & 0x0f] +
-      HEX_CHARS[(h0 >>> 24) & 0x0f] +
-      HEX_CHARS[(h0 >>> 20) & 0x0f] +
-      HEX_CHARS[(h0 >>> 16) & 0x0f] +
-      HEX_CHARS[(h0 >>> 12) & 0x0f] +
-      HEX_CHARS[(h0 >>> 8) & 0x0f] +
-      HEX_CHARS[(h0 >>> 4) & 0x0f] +
-      HEX_CHARS[h0 & 0x0f] +
-      HEX_CHARS[(h1 >>> 28) & 0x0f] +
-      HEX_CHARS[(h1 >>> 24) & 0x0f] +
-      HEX_CHARS[(h1 >>> 20) & 0x0f] +
-      HEX_CHARS[(h1 >>> 16) & 0x0f] +
-      HEX_CHARS[(h1 >>> 12) & 0x0f] +
-      HEX_CHARS[(h1 >>> 8) & 0x0f] +
-      HEX_CHARS[(h1 >>> 4) & 0x0f] +
-      HEX_CHARS[h1 & 0x0f] +
-      HEX_CHARS[(h2 >>> 28) & 0x0f] +
-      HEX_CHARS[(h2 >>> 24) & 0x0f] +
-      HEX_CHARS[(h2 >>> 20) & 0x0f] +
-      HEX_CHARS[(h2 >>> 16) & 0x0f] +
-      HEX_CHARS[(h2 >>> 12) & 0x0f] +
-      HEX_CHARS[(h2 >>> 8) & 0x0f] +
-      HEX_CHARS[(h2 >>> 4) & 0x0f] +
-      HEX_CHARS[h2 & 0x0f] +
-      HEX_CHARS[(h3 >>> 28) & 0x0f] +
-      HEX_CHARS[(h3 >>> 24) & 0x0f] +
-      HEX_CHARS[(h3 >>> 20) & 0x0f] +
-      HEX_CHARS[(h3 >>> 16) & 0x0f] +
-      HEX_CHARS[(h3 >>> 12) & 0x0f] +
-      HEX_CHARS[(h3 >>> 8) & 0x0f] +
-      HEX_CHARS[(h3 >>> 4) & 0x0f] +
-      HEX_CHARS[h3 & 0x0f] +
-      HEX_CHARS[(h4 >>> 28) & 0x0f] +
-      HEX_CHARS[(h4 >>> 24) & 0x0f] +
-      HEX_CHARS[(h4 >>> 20) & 0x0f] +
-      HEX_CHARS[(h4 >>> 16) & 0x0f] +
-      HEX_CHARS[(h4 >>> 12) & 0x0f] +
-      HEX_CHARS[(h4 >>> 8) & 0x0f] +
-      HEX_CHARS[(h4 >>> 4) & 0x0f] +
-      HEX_CHARS[h4 & 0x0f] +
-      HEX_CHARS[(h5 >>> 28) & 0x0f] +
-      HEX_CHARS[(h5 >>> 24) & 0x0f] +
-      HEX_CHARS[(h5 >>> 20) & 0x0f] +
-      HEX_CHARS[(h5 >>> 16) & 0x0f] +
-      HEX_CHARS[(h5 >>> 12) & 0x0f] +
-      HEX_CHARS[(h5 >>> 8) & 0x0f] +
-      HEX_CHARS[(h5 >>> 4) & 0x0f] +
-      HEX_CHARS[h5 & 0x0f] +
-      HEX_CHARS[(h6 >>> 28) & 0x0f] +
-      HEX_CHARS[(h6 >>> 24) & 0x0f] +
-      HEX_CHARS[(h6 >>> 20) & 0x0f] +
-      HEX_CHARS[(h6 >>> 16) & 0x0f] +
-      HEX_CHARS[(h6 >>> 12) & 0x0f] +
-      HEX_CHARS[(h6 >>> 8) & 0x0f] +
-      HEX_CHARS[(h6 >>> 4) & 0x0f] +
-      HEX_CHARS[h6 & 0x0f];
-    if (!this.is224) {
-      hex +=
-        HEX_CHARS[(h7 >>> 28) & 0x0f] +
-        HEX_CHARS[(h7 >>> 24) & 0x0f] +
-        HEX_CHARS[(h7 >>> 20) & 0x0f] +
-        HEX_CHARS[(h7 >>> 16) & 0x0f] +
-        HEX_CHARS[(h7 >>> 12) & 0x0f] +
-        HEX_CHARS[(h7 >>> 8) & 0x0f] +
-        HEX_CHARS[(h7 >>> 4) & 0x0f] +
-        HEX_CHARS[h7 & 0x0f];
-    }
-    return hex;
-  };
-
-  Sha256.prototype.toString = Sha256.prototype.hex;
-
-  Sha256.prototype.digest = function () {
-    this.finalize();
-
-    var h0 = this.h0,
-      h1 = this.h1,
-      h2 = this.h2,
-      h3 = this.h3,
-      h4 = this.h4,
-      h5 = this.h5,
-      h6 = this.h6,
-      h7 = this.h7;
-
-    var arr = [
-      (h0 >>> 24) & 0xff,
-      (h0 >>> 16) & 0xff,
-      (h0 >>> 8) & 0xff,
-      h0 & 0xff,
-      (h1 >>> 24) & 0xff,
-      (h1 >>> 16) & 0xff,
-      (h1 >>> 8) & 0xff,
-      h1 & 0xff,
-      (h2 >>> 24) & 0xff,
-      (h2 >>> 16) & 0xff,
-      (h2 >>> 8) & 0xff,
-      h2 & 0xff,
-      (h3 >>> 24) & 0xff,
-      (h3 >>> 16) & 0xff,
-      (h3 >>> 8) & 0xff,
-      h3 & 0xff,
-      (h4 >>> 24) & 0xff,
-      (h4 >>> 16) & 0xff,
-      (h4 >>> 8) & 0xff,
-      h4 & 0xff,
-      (h5 >>> 24) & 0xff,
-      (h5 >>> 16) & 0xff,
-      (h5 >>> 8) & 0xff,
-      h5 & 0xff,
-      (h6 >>> 24) & 0xff,
-      (h6 >>> 16) & 0xff,
-      (h6 >>> 8) & 0xff,
-      h6 & 0xff,
-    ];
-    if (!this.is224) {
-      arr.push((h7 >>> 24) & 0xff, (h7 >>> 16) & 0xff, (h7 >>> 8) & 0xff, h7 & 0xff);
-    }
-    return arr;
-  };
-
-  Sha256.prototype.array = Sha256.prototype.digest;
-
-  Sha256.prototype.arrayBuffer = function () {
-    this.finalize();
-
-    var buffer = new ArrayBuffer(this.is224 ? 28 : 32);
-    var dataView = new DataView(buffer);
-    dataView.setUint32(0, this.h0);
-    dataView.setUint32(4, this.h1);
-    dataView.setUint32(8, this.h2);
-    dataView.setUint32(12, this.h3);
-    dataView.setUint32(16, this.h4);
-    dataView.setUint32(20, this.h5);
-    dataView.setUint32(24, this.h6);
-    if (!this.is224) {
-      dataView.setUint32(28, this.h7);
-    }
-    return buffer;
-  };
-
-  function HmacSha256(key, is224, sharedMemory) {
-    var i,
-      type = typeof key;
-    if (type === "string") {
-      var bytes = [],
-        length = key.length,
-        index = 0,
-        code;
-      for (i = 0; i < length; ++i) {
-        code = key.charCodeAt(i);
-        if (code < 0x80) {
-          bytes[index++] = code;
-        } else if (code < 0x800) {
-          bytes[index++] = 0xc0 | (code >>> 6);
-          bytes[index++] = 0x80 | (code & 0x3f);
-        } else if (code < 0xd800 || code >= 0xe000) {
-          bytes[index++] = 0xe0 | (code >>> 12);
-          bytes[index++] = 0x80 | ((code >>> 6) & 0x3f);
-          bytes[index++] = 0x80 | (code & 0x3f);
-        } else {
-          code = 0x10000 + (((code & 0x3ff) << 10) | (key.charCodeAt(++i) & 0x3ff));
-          bytes[index++] = 0xf0 | (code >>> 18);
-          bytes[index++] = 0x80 | ((code >>> 12) & 0x3f);
-          bytes[index++] = 0x80 | ((code >>> 6) & 0x3f);
-          bytes[index++] = 0x80 | (code & 0x3f);
-        }
-      }
-      key = bytes;
-    } else {
-      if (type === "object") {
-        if (key === null) {
-          throw new Error(ERROR);
-        } else if (ARRAY_BUFFER && key.constructor === ArrayBuffer) {
-          key = new Uint8Array(key);
-        } else if (!Array.isArray(key)) {
-          if (!ARRAY_BUFFER || !ArrayBuffer.isView(key)) {
-            throw new Error(ERROR);
-          }
-        }
-      } else {
-        throw new Error(ERROR);
-      }
-    }
-
-    if (key.length > 64) {
-      key = new Sha256(is224, true).update(key).array();
-    }
-
-    var oKeyPad = [],
-      iKeyPad = [];
-    for (i = 0; i < 64; ++i) {
-      var b = key[i] || 0;
-      oKeyPad[i] = 0x5c ^ b;
-      iKeyPad[i] = 0x36 ^ b;
-    }
-
-    Sha256.call(this, is224, sharedMemory);
-
-    this.update(iKeyPad);
-    this.oKeyPad = oKeyPad;
-    this.inner = true;
-    this.sharedMemory = sharedMemory;
-  }
-  HmacSha256.prototype = new Sha256();
-
-  HmacSha256.prototype.finalize = function () {
-    Sha256.prototype.finalize.call(this);
-    if (this.inner) {
-      this.inner = false;
-      var innerHash = this.array();
-      Sha256.call(this, this.is224, this.sharedMemory);
-      this.update(this.oKeyPad);
-      this.update(innerHash);
-      Sha256.prototype.finalize.call(this);
-    }
-  };
-
-  var exports = createMethod();
-  exports.sha256 = exports;
-  exports.sha224 = createMethod(true);
-  exports.sha256.hmac = createHmacMethod();
-  exports.sha224.hmac = createHmacMethod(true);
-
-  if (COMMON_JS) {
-    module.exports = exports;
-  } else {
-    root.sha256 = exports.sha256;
-    root.sha224 = exports.sha224;
-    if (AMD) {
-      define(function () {
-        return exports;
-      });
-    }
-  }
-})();
+const cn_hostnames = [
+	'weibo.com',                // Weibo - A popular social media platform
+	'www.baidu.com',            // Baidu - The largest search engine in China
+	'www.qq.com',               // QQ - A widely used instant messaging platform
+	'www.taobao.com',           // Taobao - An e-commerce website owned by Alibaba Group
+	'www.jd.com',               // JD.com - One of the largest online retailers in China
+	'www.sina.com.cn',          // Sina - A Chinese online media company
+	'www.sohu.com',             // Sohu - A Chinese internet service provider
+	'www.tmall.com',            // Tmall - An online retail platform owned by Alibaba Group
+	'www.163.com',              // NetEase Mail - One of the major email providers in China
+	'www.zhihu.com',            // Zhihu - A popular question-and-answer website
+	'www.youku.com',            // Youku - A Chinese video sharing platform
+	'www.xinhuanet.com',        // Xinhua News Agency - Official news agency of China
+	'www.douban.com',           // Douban - A Chinese social networking service
+	'www.meituan.com',          // Meituan - A Chinese group buying website for local services
+	'www.toutiao.com',          // Toutiao - A news and information content platform
+	'www.ifeng.com',            // iFeng - A popular news website in China
+	'www.autohome.com.cn',      // Autohome - A leading Chinese automobile online platform
+	'www.360.cn',               // 360 - A Chinese internet security company
+	'www.douyin.com',           // Douyin - A Chinese short video platform
+	'www.kuaidi100.com',        // Kuaidi100 - A Chinese express delivery tracking service
+	'www.wechat.com',           // WeChat - A popular messaging and social media app
+	'www.csdn.net',             // CSDN - A Chinese technology community website
+	'www.imgo.tv',              // ImgoTV - A Chinese live streaming platform
+	'www.aliyun.com',           // Alibaba Cloud - A Chinese cloud computing company
+	'www.eyny.com',             // Eyny - A Chinese multimedia resource-sharing website
+	'www.mgtv.com',             // MGTV - A Chinese online video platform
+	'www.xunlei.com',           // Xunlei - A Chinese download manager and torrent client
+	'www.hao123.com',           // Hao123 - A Chinese web directory service
+	'www.bilibili.com',         // Bilibili - A Chinese video sharing and streaming platform
+	'www.youth.cn',             // Youth.cn - A China Youth Daily news portal
+	'www.hupu.com',             // Hupu - A Chinese sports community and forum
+	'www.youzu.com',            // Youzu Interactive - A Chinese game developer and publisher
+	'www.panda.tv',             // Panda TV - A Chinese live streaming platform
+	'www.tudou.com',            // Tudou - A Chinese video-sharing website
+	'www.zol.com.cn',           // ZOL - A Chinese electronics and gadgets website
+	'www.toutiao.io',           // Toutiao - A news and information app
+	'www.tiktok.com',           // TikTok - A Chinese short-form video app
+	'www.netease.com',          // NetEase - A Chinese internet technology company
+	'www.cnki.net',             // CNKI - China National Knowledge Infrastructure, an information aggregator
+	'www.zhibo8.cc',            // Zhibo8 - A website providing live sports streams
+	'www.zhangzishi.cc',        // Zhangzishi - Personal website of Zhang Zishi, a public intellectual in China
+	'www.xueqiu.com',           // Xueqiu - A Chinese online social platform for investors and traders
+	'www.qqgongyi.com',         // QQ Gongyi - Tencent's charitable foundation platform
+	'www.ximalaya.com',         // Ximalaya - A Chinese online audio platform
+	'www.dianping.com',         // Dianping - A Chinese online platform for finding and reviewing local businesses
+	'www.suning.com',           // Suning - A leading Chinese online retailer
+	'www.zhaopin.com',          // Zhaopin - A Chinese job recruitment platform
+	'www.jianshu.com',          // Jianshu - A Chinese online writing platform
+	'www.mafengwo.cn',          // Mafengwo - A Chinese travel information sharing platform
+	'www.51cto.com',            // 51CTO - A Chinese IT technical community website
+	'www.qidian.com',           // Qidian - A Chinese web novel platform
+	'www.ctrip.com',            // Ctrip - A Chinese travel services provider
+	'www.pconline.com.cn',      // PConline - A Chinese technology news and review website
+	'www.cnzz.com',             // CNZZ - A Chinese web analytics service provider
+	'www.telegraph.co.uk',      // The Telegraph - A British newspaper website	
+	'www.ynet.com',             // Ynet - A Chinese news portal
+	'www.ted.com',              // TED - A platform for ideas worth spreading
+	'www.renren.com',           // Renren - A Chinese social networking service
+	'www.pptv.com',             // PPTV - A Chinese online video streaming platform
+	'www.liepin.com',           // Liepin - A Chinese online recruitment website
+	'www.881903.com',           // 881903 - A Hong Kong radio station website
+	'www.aipai.com',            // Aipai - A Chinese online video sharing platform
+	'www.ttpaihang.com',        // Ttpaihang - A Chinese celebrity popularity ranking website
+	'www.quyaoya.com',          // Quyaoya - A Chinese online ticketing platform
+	'www.91.com',               // 91.com - A Chinese software download website
+	'www.dianyou.cn',           // Dianyou - A Chinese game information website
+	'www.tmtpost.com',          // TMTPost - A Chinese technology media platform
+	'www.douban.com',           // Douban - A Chinese social networking service
+	'www.guancha.cn',           // Guancha - A Chinese news and commentary website
+	'www.so.com',               // So.com - A Chinese search engine
+	'www.58.com',               // 58.com - A Chinese classified advertising website
+	'www.cnblogs.com',          // Cnblogs - A Chinese technology blog community
+	'www.cntv.cn',              // CCTV - China Central Television official website
+	'www.secoo.com',            // Secoo - A Chinese luxury e-commerce platform
+];
