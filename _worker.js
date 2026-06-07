@@ -25,6 +25,7 @@ const wildcards = [
   'siakad.esaunggul.ac.id',
   'bakrie.ac.id',
   'api24-normal-alisg.tiktokv.com'
+  'api24-normal.tiktokv.com'
 ];
 // Global Variables
 let cachedProxyList = [];
